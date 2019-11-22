@@ -24,10 +24,8 @@ int main(){
 	int i;
 
 	printf("--------------------------------------\n");
-	printf("myeongju , hyejin \n");
-	printf(" [ 기능 ]\n");
-	printf(" 쉘 명령어 : cd, exit\n");
-	printf(" 외부 명령어 : pipe(|), redirection(<,<<,>,>>)\n");
+	printf("Hello, Welecome to JJ's Shell!\n");
+	printf("made by myeongju , hyejin \n");
 	printf("--------------------------------------\n");
 
 	while(1){
