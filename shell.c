@@ -8,6 +8,7 @@
 
 #define MAXSIZE 255
 
+void do_background(int p, char **argv);
 int get_command(char* cmd, char **argv);
 int inner_command(char **argv);
 void do_command(char **argv);
@@ -56,6 +57,47 @@ int main(){
 	}
 	return 0;
 }
+
+//백그라운드 명령어 처리
+void do_background(int p, char **argv){
+
+        pid_t pid; //자식 프로세스 ID 저장
+
+        int exit_status; //자식 프로세스 종료 시 상태 저장
+        int i;
+        char **fc_argv;
+
+        fc_argv = (char **)malloc(32*sizeof(char *));
+        for(i = 0; i < 32; i++)
+                fc_argv[i] = (char *)malloc(64*sizeof(char *));
+
+        for(i = 0; i < p; i++){
+                strcpy(fc_argv[i], argv[i]);
+        }
+
+        fc_argv[p] = (char *)0;
+        if((pid =fork()) == -1){
+                printf("fork() error!\n");
+        }else if(pid == 0){
+                if(fork() == 0){
+                        printf("자식 프로세스 ID : %d\n", getpid());
+                        if(execvp(fc_argv[0], fc_argv)==-1){
+                                if(strlen(fc_argv[0]) != 0){
+                                        printf("명령을 찾을 수 없습니다. %s\n", fc_argv[0]);
+                                }
+                        }
+
+                        exit(1);
+                }else{
+                        exit(1);
+                }
+        }else{
+
+                wait(&exit_status);
+        }
+
+}
+
 
 //명령어 분류
 int get_command(char* cmd, char **argv){
@@ -310,15 +352,23 @@ int check_command(int argc, char **argv){
 			find[1] = i;
 			break;
 		}
-		else if(strcmp(argv[i], "|")==0){
-			find[0] = 5;
-			find[1] = i;
-			break;
+		//백그라운드
+                else if(strcmp(argv[i], "&") == 0){
+                        find[0] = 5;
+                        find[1] = i;
+                        break;
+                }
+                //파이프
+                else if(strcmp(argv[i], "|") == 0){
+                        find[0] = 6;
+                        find[1] = i;
+                        break;
 		}
 		else{
 			find[0] = 0;
 			find[1] = i;
 		}
+
 	}
 
 	switch(find[0]){
@@ -338,8 +388,11 @@ int check_command(int argc, char **argv){
 			do_redirect(find[0], find[1], argv);
 			break;
 		case 5:
-			do_pipe(find[1], argv);
-			break;
+                        do_background(find[1], argv);
+                        break;
+                case 6:
+                        do_pipe(find[1], argv);
+                        break;
 		default:
 			break;
 	}
