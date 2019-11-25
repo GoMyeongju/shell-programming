@@ -33,8 +33,8 @@ int main(){
 	printf("Hello, Welecome to JJ's Shell!\n");
 	printf("made by myeongju , hyejin \n");
 	printf("--------------------------------------\n");
-	signal(SIGINT, do_signal);
-	signal(SIGTSTP, do_signal);
+	//signal(SIGINT, do_signal);
+	//signal(SIGTSTP, do_signal);
 
 	while(1){
 		char command[MAXSIZE] = {'\0',};
@@ -50,8 +50,12 @@ int main(){
 		for(i = 0; i<32; i++){
 			argv[i] = (char *)malloc(64*sizeof(char));
 		}
+		signal(SIGINT, do_signal);
+		signal(SIGTSTP, do_signal);
 
-		printf("%d, %d\n", getpid(), getppid());
+
+
+		//printf("%d, %d\n", getpid(), getppid());
 		//쉘 프롬프트 출력 및 입력한 명령어 읽어옴.
 		write(STDOUT_FILENO, prompt, sizeof(prompt));
 		write(STDOUT_FILENO, strrchr(dir,'/')+1, strlen(strrchr(dir,'/')));
@@ -77,8 +81,8 @@ int main(){
 //시그널 처리
 void do_signal(int signum){
 
-	int status;
-	int child = getpid();
+	int stat;
+	//int child = getpid();
 
 	//프로세스 구분(자식인지 아닌지)
 	if(pid  != getppid()){
@@ -88,8 +92,8 @@ void do_signal(int signum){
 				break;
 			case SIGTSTP:
 				printf("Ctrl + Z\n");
-				child = waitpid(-1, NULL, 0);
-				//kill(child, SIGCHLD);
+				pid = wait(&stat);
+				//kill(kill, SIGCHLD);
 				break;
 		}
 	}
