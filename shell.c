@@ -5,16 +5,20 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <signal.h>
 
 #define MAXSIZE 255
 
-int get_command(char* cmd, char **argv);
-int inner_command(char **argv);
-void do_command(char **argv);
+int get_comm(char* cmd, char **argv);
+int inner_comm(char **argv);
+void do_comm(char **argv);
 void do_pipe(int pp, char **argv);
 void do_redirect(int flag, int dp, char **argv);
-int check_command(int argc, char **argv);
+int check_comm(int argc, char **argv);
+void do_background(int p, char **argv);
+void do_signal(int signum);
 
+pid_t pid; //자식 프로세스 저장 전역변수 
 
 int main(){
 
@@ -23,12 +27,14 @@ int main(){
 	char *dir;
 	int inner_flag;
 	int i;
-	
+
 	//초기 출력 화면
 	printf("--------------------------------------\n");
 	printf("Hello, Welecome to JJ's Shell!\n");
 	printf("made by myeongju , hyejin \n");
 	printf("--------------------------------------\n");
+	signal(SIGINT, do_signal);
+	signal(SIGTSTP, do_signal);
 
 	while(1){
 		char command[MAXSIZE] = {'\0',};
@@ -45,11 +51,14 @@ int main(){
 			argv[i] = (char *)malloc(64*sizeof(char));
 		}
 
+		printf("%d, %d\n", getpid(), getppid());
 		//쉘 프롬프트 출력 및 입력한 명령어 읽어옴.
 		write(STDOUT_FILENO, prompt, sizeof(prompt));
 		write(STDOUT_FILENO, strrchr(dir,'/')+1, strlen(strrchr(dir,'/')));
 		write(STDOUT_FILENO, "> ", 3);
 		read(STDIN_FILENO, command, MAXSIZE);
+
+
 
 		//명령어 토큰 분류
 		argc = get_comm(command, argv);
@@ -61,8 +70,32 @@ int main(){
 		if(inner_flag==0)
 			check_comm(argc, argv);
 	}
+	
 	return 0;
 }
+
+//시그널 처리
+void do_signal(int signum){
+
+	int status;
+	int child = getpid();
+
+	//프로세스 구분(자식인지 아닌지)
+	if(pid  != getppid()){
+		switch(signum){
+			case SIGINT:
+				printf("Ctrl + C\n");
+				break;
+			case SIGTSTP:
+				printf("Ctrl + Z\n");
+				child = waitpid(-1, NULL, 0);
+				//kill(child, SIGCHLD);
+				break;
+		}
+	}
+	
+}
+
 
 //명령어 받아와 각각의 토큰으로 나눠 분석
 int get_comm(char* cmd, char **argv){
@@ -71,6 +104,7 @@ int get_comm(char* cmd, char **argv){
 	int argc = 0;
 	char temp;
 
+//	pid_t pid; //자식 프로세스 저장 
 	while(cmd[comm_e] != '\n'){
 		temp = cmd[comm_e];
 		if(temp==' '){
@@ -92,7 +126,7 @@ int inner_comm(char **argv){
 	
 	//exit 
 	if(strcmp(argv[0], "exit") == 0){
-		printf("종료합니다.\n");
+		printf("JJ's Shell을 종료합니다.\n");
 		exit(1);
 	}
 
@@ -108,10 +142,10 @@ int inner_comm(char **argv){
 //일반 외부 명령어 처리(책에 있는 코드 참조)
 void do_comm(char **argv){
 
-	pid_t pid;
 	int exit_status;
+//	pid_t pid;
 
-	if((pid = fork()) == -1 ){
+	if((pid =fork()) == -1 ){
 		printf("fork() error!\n");
 	}
 	else if(pid ==0){
@@ -206,9 +240,9 @@ void do_pipe(int pp, char **argv){
 	char **bc_argv;
 
 	int i, j =0;
-	pid_t pid;
 	int fd[2];
 
+//	pid_t pid; //자식 프로세스 저장 
 	fc_argv = (char **)malloc(32*sizeof(char *));
 	for(i = 0; i < 32; i++)
 		fc_argv[i] = (char *)malloc(64*sizeof(char));
@@ -268,7 +302,8 @@ void do_pipe(int pp, char **argv){
 //백그라운드 명령어 처리
 void do_background(int p, char **argv){
 
-	pid_t pid; //자식 프로세스 ID 저장
+
+//	pid_t pid; //자식 프로세스 저장
 
 	int exit_status; //자식 프로세스 종료 시 상태 저장  
 	int i;
@@ -292,8 +327,7 @@ void do_background(int p, char **argv){
 				if(strlen(fc_argv[0]) != 0){
 					printf("명령을 찾을 수 없습니다. %s\n", fc_argv[0]);
 				}
-			}
-			
+			}	
 			exit(1);
 		}else{
 			exit(1);
@@ -313,7 +347,7 @@ void do_redirect(int flag, int dp, char **argv){
 	int i, j =0;
 	int fd;
 	int exit_status;
-	pid_t pid;
+//	pid_t pid; //자식 프로세스 저장
 
 	fw_argv=(char **)malloc(32*sizeof(char *));
 	for(i=0;i<32;i++)
