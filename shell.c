@@ -186,20 +186,15 @@ int check_comm(int argc, char **argv){
 			find[1] = i;
 			break;
 		}
-		else if(strcmp(argv[i], "<<") == 0){
-			find[0] = 4;
-			find[1] = i;
-			break;
-		}
 		//백그라운드
 		else if(strcmp(argv[i], "&") == 0){
-			find[0] = 5;
+			find[0] = 4;
 			find[1] = i;
 			break;
 		}
 		//파이프
 		else if(strcmp(argv[i], "|") == 0){
-			find[0] = 6;
+			find[0] = 5;
 			find[1] = i;
 			break;
 		}//일반  내부 명령어
@@ -223,12 +218,9 @@ int check_comm(int argc, char **argv){
 			do_redirect(find[0], find[1], argv);
 			break;
 		case 4:
-			do_redirect(find[0], find[1], argv);
-			break;
-		case 5:
 			do_background(find[1], argv);
 			break;
-		case 6:
+		case 5:
 			do_pipe(find[1], argv);
 			break;
 		default:
@@ -413,22 +405,6 @@ void do_redirect(int flag, int dp, char **argv){
 			}else if(pid==0){
 				fd=open(bw_argv[0], O_RDONLY);
 				dup2(fd, STDIN_FILENO);
-				close(fd);
-				if(execvp(fw_argv[0], fw_argv)==-1)
-					if(strlen(fw_argv[0])!=0)
-						printf("명령을 찾을 수 없습니다. %s\n", fw_argv[0]);
-				exit(1);
-			}else{
-				wait(&exit_status);
-			}
-			break;
-
-		case 4:
-			if((pid=fork())==-1){ 
-				printf("fork() 에러\n");exit(1); 
-			}else if(pid == 0){
-				fd=open(bw_argv[0], O_RDONLY);
-				dup2(fd,STDIN_FILENO);
 				close(fd);
 				if(execvp(fw_argv[0], fw_argv)==-1)
 					if(strlen(fw_argv[0])!=0)
